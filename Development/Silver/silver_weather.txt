@@ -1,0 +1,190 @@
+{{ config(
+    materialized='table',
+    schema='silver'
+) }}
+
+WITH source_data AS (
+
+    SELECT *
+    FROM {{ source('bronze', 'weather_source_v2') }}
+
+),
+
+cleaned_data AS (
+
+    SELECT DISTINCT
+
+        /* ==========================================
+           1. TEXT CLEANING
+           ========================================== */
+
+        NULLIF(TRIM(household_id), '') AS household_id,
+
+        NULLIF(TRIM(weather_region), '') AS weather_region,
+
+        NULLIF(TRIM(weather_city), '') AS weather_city,
+
+        NULLIF(TRIM(weather_station), '') AS weather_station,
+
+        NULLIF(TRIM(climate_zone), '') AS climate_zone,
+
+
+        /* ==========================================
+           2. CONDITION TYPE STANDARDIZATION
+           
+           Cloudy% / cloudy / CLOUDY / Cloudy
+           → Cloudy
+           ========================================== */
+
+        INITCAP(
+            TRIM(
+                REGEXP_REPLACE(
+                    condition_type,
+                    '%',
+                    ''
+                )
+            )
+        ) AS condition_type,
+
+
+        /* ==========================================
+           3. WEATHER MEASUREMENTS
+           Convert STRING → DOUBLE
+           ========================================== */
+
+        TRY_CAST(
+            temperature_celsius AS DOUBLE
+        ) AS temperature_celsius,
+
+        TRY_CAST(
+            humidity_percent AS DOUBLE
+        ) AS humidity_percent,
+
+        TRY_CAST(
+            wind_speed_kmh AS DOUBLE
+        ) AS wind_speed_kmh,
+
+        TRY_CAST(
+            rainfall_mm AS DOUBLE
+        ) AS rainfall_mm,
+
+        TRY_CAST(
+            pressure_hpa AS DOUBLE
+        ) AS pressure_hpa,
+
+        TRY_CAST(
+            solar_radiation AS DOUBLE
+        ) AS solar_radiation,
+
+        TRY_CAST(
+            dew_point AS DOUBLE
+        ) AS dew_point,
+
+        TRY_CAST(
+            uv_index AS DOUBLE
+        ) AS uv_index,
+
+        TRY_CAST(
+            visibility_km AS DOUBLE
+        ) AS visibility_km,
+
+        TRY_CAST(
+            cloud_cover_percent AS DOUBLE
+        ) AS cloud_cover_percent,
+
+
+        /* ==========================================
+           4. TIMESTAMP CONVERSION
+           ========================================== */
+
+        TRY_CAST(
+            `timestamp` AS TIMESTAMP
+        ) AS timestamp
+
+    FROM source_data
+
+),
+
+validated_data AS (
+
+    SELECT *
+
+    FROM cleaned_data
+
+    WHERE
+
+        /* ==========================================
+           5. HUMIDITY VALIDATION
+           Rule: 0–100
+           ========================================== */
+
+        (
+            humidity_percent IS NULL
+            OR humidity_percent BETWEEN 0 AND 100
+        )
+
+        AND
+
+        /* ==========================================
+           6. CLOUD COVER VALIDATION
+           Rule: 0–100
+           ========================================== */
+
+        (
+            cloud_cover_percent IS NULL
+            OR cloud_cover_percent BETWEEN 0 AND 100
+        )
+
+        AND
+
+        /* ==========================================
+           7. RAINFALL VALIDATION
+           Rule: >= 0
+           ========================================== */
+
+        (
+            rainfall_mm IS NULL
+            OR rainfall_mm >= 0
+        )
+
+        AND
+
+        /* ==========================================
+           8. WIND SPEED VALIDATION
+           Rule: >= 0
+           ========================================== */
+
+        (
+            wind_speed_kmh IS NULL
+            OR wind_speed_kmh >= 0
+        )
+
+        AND
+
+        /* ==========================================
+           9. VISIBILITY VALIDATION
+           Rule: >= 0
+           ========================================== */
+
+        (
+            visibility_km IS NULL
+            OR visibility_km >= 0
+        )
+
+        AND
+
+        /* ==========================================
+           10. UV INDEX VALIDATION
+           Rule: >= 0
+           ========================================== */
+
+        (
+            uv_index IS NULL
+            OR uv_index >= 0
+        )
+
+)
+
+SELECT *
+
+FROM validated_data
