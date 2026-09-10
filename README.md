@@ -115,13 +115,13 @@ The Silver layer converts raw Bronze data into clean, standardized and validated
 * Generate data-quality indicators.
 
 ```text
-energydbs.silver
+azuredb_cen.silver
 │
 ├── energy_metrics
 ├── silver_device_metrics
-├── silver_grid_load_metrics
-├── silver_traffic_metrics
-└── silver_weather_metrics
+├── silver_grid
+├── silver_traffic
+└── silver_weather
 ```
 
 # 🥇 Gold Layer – Dimensional Model
@@ -131,7 +131,7 @@ The Gold layer provides business-ready dimensional and fact tables for energy-gr
 The model follows a Star Schema.
 
 ```text
-energydbs.gold
+azuredb_cen.gold
 │
 ├── dim_household
 ├── dim_feeder
@@ -250,19 +250,19 @@ The dbt project reads Bronze tables from Databricks and creates Silver and Gold 
 ### Source
 
 ```text
-energydbs.bronze
+azuredb_cen.bronze
 ```
 
 ### Silver
 
 ```text
-energydbs.silver
+azuredb_cen.silver
 ```
 
 ### Gold
 
 ```text
-energydbs.gold
+azuredb_cen.gold
 ```
 
 ### dbt Project Structure
@@ -273,10 +273,10 @@ dbt/
 ├── models/
 │   ├── silver/
 │   │   ├── energy_metrics.sql
-│   │   ├── silver_device_metrics.sql
-│   │   ├── silver_grid_load_metrics.sql
-│   │   ├── silver_traffic_metrics.sql
-│   │   └── silver_weather_metrics.sql
+│   │   ├── silver_device.sql
+│   │   ├── silver_grid.sql
+│   │   ├── silver_tariff.sql
+│   │   └── silver_weather.sql
 │   │
 │   └── gold/
 │       ├── dim_household.sql
@@ -411,7 +411,7 @@ The following must remain outside source control:
 # 📁 Project Structure
 
 ```text
-Energy-Grid-Data-Engineering/
+energy-comsumption-analysis-pepelines/
 │
 ├── Alerts/
 │   └── Slack_Failure_Alert.md
